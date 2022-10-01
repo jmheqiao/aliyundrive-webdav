@@ -33,8 +33,23 @@ pub struct ListFileRequest<'a> {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListFileResponse {
-    pub items: Vec<AliyunFile>,
+    pub items: Vec<ListFileItem>,
     pub next_marker: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListFileItem {
+    pub name: String,
+    pub category: Option<String>,
+    #[serde(rename = "file_id")]
+    pub id: String,
+    pub r#type: FileType,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
+    #[serde(default)]
+    pub size: u64,
+    pub url: Option<String>,
+    pub content_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,6 +113,7 @@ impl From<GetFileResponse> for AliyunFile {
             updated_at: res.updated_at,
             size,
             url: None,
+            content_hash: None,
         }
     }
 }
@@ -258,6 +274,7 @@ pub struct AliyunFile {
     #[serde(default)]
     pub size: u64,
     pub url: Option<String>,
+    pub content_hash: Option<String>,
 }
 
 impl AliyunFile {
@@ -271,6 +288,27 @@ impl AliyunFile {
             updated_at: DateTime(now),
             size: 0,
             url: None,
+            content_hash: None,
+        }
+    }
+}
+
+impl From<ListFileItem> for AliyunFile {
+    fn from(f: ListFileItem) -> Self {
+        Self {
+            name: f.name,
+            id: f.id,
+            r#type: f.r#type,
+            created_at: f.created_at,
+            updated_at: f.updated_at,
+            size: f.size,
+            // 文件列表接口返回的图片下载地址经常是有问题的, 不使用它
+            url: if matches!(f.category.as_deref(), Some("image")) {
+                None
+            } else {
+                f.url
+            },
+            content_hash: f.content_hash,
         }
     }
 }
